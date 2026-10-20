@@ -170,7 +170,7 @@ class _BooksScreenState extends State<BooksScreen> {
                         padding: const EdgeInsets.all(12),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: columns,
-                          mainAxisExtent: 150,
+                          mainAxisExtent: 210,
                           crossAxisSpacing: 12,
                           mainAxisSpacing: 12,
                         ),
