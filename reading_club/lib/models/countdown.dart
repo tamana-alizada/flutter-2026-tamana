@@ -1,0 +1,43 @@
+sealed class Countdown {
+  const Countdown();
+}
+
+final class Upcoming extends Countdown {
+  final Duration remaining;
+
+  const Upcoming(this.remaining);
+}
+
+final class Started extends Countdown {
+  final Duration elapsed;
+
+  const Started(this.elapsed);
+}
+
+final class Ended extends Countdown {
+  const Ended();
+}
+
+Countdown getCountdown(DateTime meetingDate, {DateTime? now}) {
+  final currentTime = now ?? DateTime.now();
+
+  if (currentTime.isBefore(meetingDate)) {
+    return Upcoming(meetingDate.difference(currentTime));
+  }
+
+  final elapsed = currentTime.difference(meetingDate);
+
+  if (elapsed < const Duration(hours: 1)) {
+    return Started(elapsed);
+  }
+
+  return const Ended();
+}
+
+String countdownLabel(Countdown countdown) {
+  return switch (countdown) {
+    Upcoming(:final remaining) => 'Starts in ${remaining.inMinutes} min',
+    Started(:final elapsed) => 'Started ${elapsed.inMinutes} min ago',
+    Ended() => 'Ended',
+  };
+}
