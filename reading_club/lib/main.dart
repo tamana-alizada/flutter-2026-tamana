@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'data/seed_books.dart';
-import 'models/book.dart';
-import 'screens/books_screen.dart';
+import 'app_shell.dart';
+import 'routes/routes.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,23 +15,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  late List<Book> _books;
+  ThemeMode _themeMode = ThemeMode.system;
 
-  @override
-  void initState() {
-    super.initState();
-    _books = createSeedBooks();
-  }
-
-  void _toggleFavourite(Book book) {
+  void _changeTheme(ThemeMode mode) {
     setState(() {
-      _books = [
-        for (final item in _books)
-          if (item.id == book.id)
-            item.copyWith(isFavourite: !item.isFavourite)
-          else
-            item,
-      ];
+      _themeMode = mode;
     });
   }
 
@@ -41,22 +28,25 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       title: 'Reading Club',
       debugShowCheckedModeBanner: false,
+
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF317B72)),
       ),
-      home: BooksScreen(
-        books: _books,
-        onFavourite: _toggleFavourite,
-        onOpenBook: (book) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(book.title)));
-        },
-        onAddBook: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Book form coming next')),
-          );
-        },
+
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF317B72),
+          brightness: Brightness.dark,
+        ),
       ),
+      onGenerateRoute: generateRoute,
+      onUnknownRoute: (_) => MaterialPageRoute<void>(
+        builder: (_) => const Scaffold(body: Center(child: Text('Not found'))),
+      ),
+
+      themeMode: _themeMode,
+
+      home: AppShell(themeMode: _themeMode, onThemeChanged: _changeTheme),
     );
   }
 }

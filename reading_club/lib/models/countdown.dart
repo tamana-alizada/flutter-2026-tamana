@@ -36,8 +36,25 @@ Countdown getCountdown(DateTime meetingDate, {DateTime? now}) {
 
 String countdownLabel(Countdown countdown) {
   return switch (countdown) {
-    Upcoming(:final remaining) => 'Starts in ${remaining.inMinutes} min',
+    Upcoming(:final remaining) => _formatRemaining(remaining),
     Started(:final elapsed) => 'Started ${elapsed.inMinutes} min ago',
     Ended() => 'Ended',
   };
+}
+
+String _formatRemaining(Duration duration) {
+  final days = duration.inDays;
+  final hours = duration.inHours % 24;
+  final minutes = duration.inMinutes % 60;
+
+  if (days > 0) {
+    return 'Starts in $days days, $hours hours';
+  }
+
+  if (duration.inHours > 0) {
+    return 'Starts in ${duration.inHours} hours, '
+        '$minutes min';
+  }
+
+  return 'Starts in ${duration.inMinutes} min';
 }
