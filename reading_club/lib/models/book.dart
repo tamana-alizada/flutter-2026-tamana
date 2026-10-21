@@ -17,7 +17,7 @@ class Book {
 
   List<String> get borrowers => UnmodifiableListView(_borrowers);
 
-  const Book({
+  Book({
     required this.id,
     required this.title,
     required this.genre,
@@ -28,7 +28,7 @@ class Book {
     required this.description,
     required this.isFavourite,
     required List<String> borrowers,
-  }) : _borrowers = borrowers;
+  }) : _borrowers = List<String>.unmodifiable(borrowers);
 
   factory Book.safe({
     required String id,

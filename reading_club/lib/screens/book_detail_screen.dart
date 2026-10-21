@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../models/book.dart';
 import '../models/countdown.dart';
 import '../routes/routes.dart';
 import '../utils/format.dart';
+import '../widgets/empty_state.dart';
 
 class BookDetailScreen extends StatefulWidget {
   final BookDetailArguments arguments;
@@ -18,25 +21,16 @@ class BookDetailScreen extends StatefulWidget {
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
   late Book _book;
-  late Timer _timer;
+  late final Timer _timer;
   DateTime _now = DateTime.now();
 
   @override
   void initState() {
     super.initState();
-
     _book = widget.arguments.book;
-
     _timer = Timer.periodic(const Duration(minutes: 1), (_) {
-      setState(() {
-        _now = DateTime.now();
-      });
-    });
-  }
-
-  void _refreshBook() {
-    setState(() {
-      _book = widget.arguments.getCurrentBook(_book.id);
+      if (!mounted) return;
+      setState(() => _now = DateTime.now());
     });
   }
 
@@ -46,9 +40,14 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     super.dispose();
   }
 
+  void _refreshBook() {
+    setState(() {
+      _book = widget.arguments.getCurrentBook(_book.id);
+    });
+  }
+
   Future<void> _confirmBorrow() async {
     final name = widget.arguments.getProfileName();
-
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -56,8 +55,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           action: SnackBarAction(
             label: 'Profile',
             onPressed: () {
-              Navigator.pop(context);
               widget.arguments.onProfileRequested();
+              if (mounted) Navigator.pop(context);
             },
           ),
         ),
@@ -65,9 +64,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       return;
     }
 
-    final currentBook = widget.arguments.getCurrentBook(_book.id);
-
-    if (currentBook.isFull || currentBook.contains(name)) {
+    final current = widget.arguments.getCurrentBook(_book.id);
+    if (current.isFull || current.contains(name)) {
       _refreshBook();
       return;
     }
@@ -89,30 +87,22 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         ],
       ),
     );
-
-    if (!mounted) return;
-
-    if (confirmed == true) {
-      final latest = widget.arguments.getCurrentBook(_book.id);
-
-      if (!latest.isFull && !latest.contains(name)) {
-        widget.arguments.onBorrow(latest);
-      }
-
-      _refreshBook();
+    if (!mounted || confirmed != true) return;
+    final latest = widget.arguments.getCurrentBook(_book.id);
+    if (!latest.isFull && !latest.contains(name)) {
+      widget.arguments.onBorrow(latest);
     }
+    _refreshBook();
   }
 
   Future<void> _confirmReturn() async {
     final name = widget.arguments.getProfileName();
-
     if (name.isEmpty) return;
-
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Return book?'),
-        content: Text('Do you want to return ${_book.title}?'),
+        content: Text('Return ${_book.title}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -125,18 +115,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         ],
       ),
     );
-
-    if (!mounted) return;
-
-    if (confirmed == true) {
-      final latest = widget.arguments.getCurrentBook(_book.id);
-
-      if (latest.contains(name)) {
-        widget.arguments.onReturn(latest);
-      }
-
-      _refreshBook();
-    }
+    if (!mounted || confirmed != true) return;
+    final latest = widget.arguments.getCurrentBook(_book.id);
+    if (latest.contains(name)) widget.arguments.onReturn(latest);
+    _refreshBook();
   }
 
   Future<void> _confirmDelete() async {
@@ -144,7 +126,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete book?'),
-        content: Text('Delete ${_book.title} from the club?'),
+        content: Text('Delete ${_book.title}?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext, false),
@@ -157,13 +139,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         ],
       ),
     );
+    if (!mounted || confirmed != true) return;
+    widget.arguments.onDelete(_book);
+    Navigator.pop(context);
+  }
 
+  Future<void> _editBook() async {
+    await widget.arguments.onEdit(_book);
     if (!mounted) return;
-
-    if (confirmed == true) {
-      widget.arguments.onDelete(_book);
-      Navigator.pop(context);
-    }
+    _refreshBook();
   }
 
   @override
@@ -171,9 +155,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     final scheme = Theme.of(context).colorScheme;
     final (:taken, :free) = _book.places;
     final profileName = widget.arguments.getProfileName();
-
     final hasBorrowed = profileName.isNotEmpty && _book.contains(profileName);
-
     final countdown = getCountdown(_book.meetingDate, now: _now);
 
     return DefaultTabController(
@@ -185,9 +167,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
             PopupMenuButton<String>(
               onSelected: (value) {
                 if (value == 'edit') {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Edit form coming in Step 8')),
-                  );
+                  _editBook();
                 } else if (value == 'delete') {
                   _confirmDelete();
                 }
@@ -265,24 +245,24 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         ),
                         title: Text(_book.place),
                       ),
-                      if (_book.description != null)
-                        Text(_book.description ?? ''),
+                      if ((_book.description ?? '').isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(8),
+                          child: Text(_book.description ?? ''),
+                        ),
                     ],
                   ),
                   _book.borrowers.isEmpty
-                      ? const Center(child: Text('No borrowers yet'))
+                      ? const EmptyState(
+                          icon: Icons.people_outline,
+                          message: 'No borrowers yet',
+                        )
                       : ListView.builder(
                           itemCount: _book.borrowers.length,
-
                           itemBuilder: (context, index) {
                             final name = _book.borrowers[index];
-
-                            final profileName = widget.arguments
-                                .getProfileName();
-
                             final isYou =
                                 profileName.isNotEmpty && name == profileName;
-
                             return ListTile(
                               leading: Icon(
                                 isYou ? Icons.person_pin : Icons.person,

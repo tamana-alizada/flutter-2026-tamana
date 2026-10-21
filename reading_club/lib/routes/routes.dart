@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/book.dart';
 import '../screens/book_detail_screen.dart';
+import '../screens/book_form_screen.dart';
 
 class Routes {
   static const String home = '/';
@@ -16,6 +17,7 @@ class BookDetailArguments {
   final ValueChanged<Book> onBorrow;
   final ValueChanged<Book> onReturn;
   final ValueChanged<Book> onDelete;
+  final Future<void> Function(Book) onEdit;
   final VoidCallback onProfileRequested;
 
   const BookDetailArguments({
@@ -25,31 +27,44 @@ class BookDetailArguments {
     required this.onBorrow,
     required this.onReturn,
     required this.onDelete,
+    required this.onEdit,
     required this.onProfileRequested,
   });
 }
 
-Route<dynamic> generateRoute(RouteSettings settings) {
+class BookFormArguments {
+  final Book? book;
+  const BookFormArguments({this.book});
+}
+
+Route<dynamic>? generateRoute(RouteSettings settings) {
   switch (settings.name) {
     case Routes.detail:
-      final arguments = settings.arguments;
-
-      if (arguments is BookDetailArguments) {
+      final args = settings.arguments;
+      if (args is BookDetailArguments) {
         return MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => BookDetailScreen(arguments: arguments),
+          builder: (_) => BookDetailScreen(arguments: args),
         );
       }
-
-      return _notFoundRoute();
-
+      return null;
+    case Routes.form:
+      final args = settings.arguments;
+      if (args is BookFormArguments) {
+        return MaterialPageRoute<Book>(
+          settings: settings,
+          builder: (_) => BookFormScreen(book: args.book),
+        );
+      }
+      return null;
     default:
-      return _notFoundRoute();
+      return null;
   }
 }
 
-Route<dynamic> _notFoundRoute() {
+Route<dynamic> notFoundRoute(RouteSettings settings) {
   return MaterialPageRoute<void>(
-    builder: (_) => const Scaffold(body: Center(child: Text('Not found'))),
+    settings: settings,
+    builder: (_) => const Scaffold(body: Center(child: Text('Page not found'))),
   );
 }

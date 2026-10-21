@@ -3,9 +3,7 @@ import 'package:flutter/material.dart';
 import 'app_shell.dart';
 import 'routes/routes.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+void main() => runApp(const MyApp());
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -18,35 +16,29 @@ class _MyAppState extends State<MyApp> {
   ThemeMode _themeMode = ThemeMode.system;
 
   void _changeTheme(ThemeMode mode) {
-    setState(() {
-      _themeMode = mode;
-    });
+    setState(() => _themeMode = mode);
   }
 
   @override
   Widget build(BuildContext context) {
+    final lightScheme = ColorScheme.fromSeed(seedColor: Colors.green);
+    final darkScheme = ColorScheme.fromSeed(
+      seedColor: Colors.green,
+      brightness: Brightness.dark,
+    );
+
     return MaterialApp(
       title: 'Reading Club',
       debugShowCheckedModeBanner: false,
-
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF317B72)),
-      ),
-
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF317B72),
-          brightness: Brightness.dark,
-        ),
-      ),
-      onGenerateRoute: generateRoute,
-      onUnknownRoute: (_) => MaterialPageRoute<void>(
-        builder: (_) => const Scaffold(body: Center(child: Text('Not found'))),
-      ),
-
+      theme: ThemeData(useMaterial3: true, colorScheme: lightScheme),
+      darkTheme: ThemeData(useMaterial3: true, colorScheme: darkScheme),
       themeMode: _themeMode,
-
-      home: AppShell(themeMode: _themeMode, onThemeChanged: _changeTheme),
+      routes: {
+        Routes.home: (_) =>
+            AppShell(themeMode: _themeMode, onThemeChanged: _changeTheme),
+      },
+      onGenerateRoute: generateRoute,
+      onUnknownRoute: notFoundRoute,
     );
   }
 }

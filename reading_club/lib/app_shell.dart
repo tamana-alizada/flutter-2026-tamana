@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'data/seed_books.dart';
 import 'models/book.dart';
 import 'models/profile.dart';
+import 'routes/routes.dart';
 import 'screens/books_screen.dart';
 import 'screens/favourites_screen.dart';
 import 'screens/profile_screen.dart';
-import 'routes/routes.dart';
 
 class AppShell extends StatefulWidget {
   final ThemeMode themeMode;
@@ -25,7 +25,6 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   late List<Book> _books;
   Profile _profile = const Profile.empty();
-
   int _selectedIndex = 0;
 
   @override
@@ -35,9 +34,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _changeTab(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    setState(() => _selectedIndex = index);
   }
 
   void _toggleFavourite(Book book) {
@@ -53,10 +50,10 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _updateProfile(Profile profile) {
-    setState(() {
-      _profile = profile;
-    });
+    setState(() => _profile = profile);
   }
+
+  Book _getCurrentBook(String id) => _books.firstWhere((book) => book.id == id);
 
   void _openBook(Book book) {
     Navigator.pushNamed<void>(
@@ -64,11 +61,12 @@ class _AppShellState extends State<AppShell> {
       Routes.detail,
       arguments: BookDetailArguments(
         book: book,
-        getCurrentBook: (id) => _books.firstWhere((item) => item.id == id),
+        getCurrentBook: _getCurrentBook,
         getProfileName: () => _profile.name.trim(),
         onBorrow: _borrowBook,
         onReturn: _returnBook,
         onDelete: _deleteBook,
+        onEdit: _editBook,
         onProfileRequested: () => _changeTab(2),
       ),
     );
@@ -76,9 +74,7 @@ class _AppShellState extends State<AppShell> {
 
   void _borrowBook(Book book) {
     final name = _profile.name.trim();
-
     if (name.isEmpty) return;
-
     setState(() {
       _books = [
         for (final item in _books)
@@ -92,9 +88,7 @@ class _AppShellState extends State<AppShell> {
 
   void _returnBook(Book book) {
     final name = _profile.name.trim();
-
     if (name.isEmpty) return;
-
     setState(() {
       _books = [
         for (final item in _books)
@@ -119,71 +113,77 @@ class _AppShellState extends State<AppShell> {
     });
   }
 
-  void _addBook() {
-    ScaffoldMessenger.of(
+  Future<void> _openBookForm([Book? existingBook]) async {
+    final result = await Navigator.pushNamed<Book>(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Add Book form coming next')));
+      Routes.form,
+      arguments: BookFormArguments(book: existingBook),
+    );
+    if (!mounted || result == null) return;
+
+    setState(() {
+      if (existingBook == null) {
+        _books = [..._books, result];
+      } else {
+        _books = [
+          for (final item in _books)
+            if (item.id == existingBook.id) result else item,
+        ];
+      }
+    });
   }
+
+  void _addBook() {
+    _openBookForm();
+  }
+
+  Future<void> _editBook(Book book) => _openBookForm(book);
 
   Future<void> _showAbout() async {
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('About Reading Club'),
-          content: const Text(
-            'Reading Club is a Flutter application '
-            'for browsing books, borrowing copies, '
-            'saving favourites and managing a profile.',
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('About Reading Club'),
+        content: const Text(
+          'Browse books, manage borrowing, save favourites, '
+          'and update your reader profile.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Close'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Close'),
-            ),
-          ],
-        );
-      },
+        ],
+      ),
     );
   }
 
   Future<void> _resetData() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          title: const Text('Reset data?'),
-          content: const Text(
-            'This will restore the original books '
-            'and clear your profile.',
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reset data?'),
+        content: const Text('Restore original books and clear your profile?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
-              child: const Text('Reset'),
-            ),
-          ],
-        );
-      },
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Reset'),
+          ),
+        ],
+      ),
     );
-
-    if (!mounted) return;
-
-    if (confirmed == true) {
-      setState(() {
-        _books = createSeedBooks();
-        _profile = const Profile.empty();
-        _selectedIndex = 0;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data restored successfully')),
-      );
-    }
+    if (!mounted || confirmed != true) return;
+    setState(() {
+      _books = createSeedBooks();
+      _profile = const Profile.empty();
+      _selectedIndex = 0;
+    });
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Data restored')));
   }
 
   @override
@@ -212,17 +212,15 @@ class _AppShellState extends State<AppShell> {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Reading Club')),
-
       drawer: Drawer(
         child: SafeArea(
-          child: Column(
+          child: ListView(
             children: [
               const ListTile(
                 leading: Icon(Icons.menu_book),
                 title: Text('Reading Club'),
               ),
               const Divider(),
-
               ListTile(
                 leading: const Icon(Icons.info_outline),
                 title: const Text('About'),
@@ -231,7 +229,6 @@ class _AppShellState extends State<AppShell> {
                   _showAbout();
                 },
               ),
-
               ListTile(
                 leading: const Icon(Icons.restart_alt),
                 title: const Text('Reset Data'),
@@ -244,16 +241,13 @@ class _AppShellState extends State<AppShell> {
           ),
         ),
       ),
-
       body: IndexedStack(index: _selectedIndex, children: pages),
-
       floatingActionButton: _selectedIndex == 0
           ? FloatingActionButton(
               onPressed: _addBook,
               child: const Icon(Icons.add),
             )
           : null,
-
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: _changeTab,
