@@ -32,7 +32,7 @@ class BookCard extends StatelessWidget {
                 clipBehavior: Clip.none,
                 children: [
                   CircleAvatar(
-                    radius: 28,
+                    radius: 30,
                     backgroundColor: book.genre.color(scheme),
                     child: Icon(book.genre.icon, color: scheme.surface),
                   ),

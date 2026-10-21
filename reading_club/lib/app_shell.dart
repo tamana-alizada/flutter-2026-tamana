@@ -42,6 +42,7 @@ class _AppShellState extends State<AppShell> {
       _books = [
         for (final item in _books)
           if (item.id == book.id)
+            // the value should be changed accordingly
             item.copyWith(isFavourite: !item.isFavourite)
           else
             item,

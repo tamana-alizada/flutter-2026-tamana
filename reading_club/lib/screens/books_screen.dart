@@ -43,7 +43,7 @@ class _BooksScreenState extends State<BooksScreen> {
 
       final matchesGenre =
           _selectedGenre == null || book.genre == _selectedGenre;
-
+      // we need matchespast here, but if it is null(not selected)
       final matchesPast = _showPast || !book.isPast;
 
       return matchesSearch && matchesGenre && matchesPast;

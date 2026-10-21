@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import '../models/book.dart';
@@ -28,7 +26,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
     _book = widget.arguments.book;
-    _timer = Timer.periodic(const Duration(minutes: 1), (_) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() => _now = DateTime.now());
     });
@@ -245,6 +243,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         ),
                         title: Text(_book.place),
                       ),
+                      // it can be null, that's why we check it instead of !
                       if ((_book.description ?? '').isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.all(8),

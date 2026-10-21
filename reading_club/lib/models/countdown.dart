@@ -36,8 +36,8 @@ Countdown getCountdown(DateTime meetingDate, {DateTime? now}) {
 
 String countdownLabel(Countdown countdown) {
   return switch (countdown) {
-    Upcoming(:final remaining) => _formatRemaining(remaining),
-    Started(:final elapsed) => 'Started ${elapsed.inMinutes} min ago',
+    Upcoming(:final remaining) => 'Starts in ${_formatRemaining(remaining)}',
+    Started(:final elapsed) => 'Started ${_formatRemaining(elapsed)} ago',
     Ended() => 'Ended',
   };
 }
@@ -46,15 +46,18 @@ String _formatRemaining(Duration duration) {
   final days = duration.inDays;
   final hours = duration.inHours % 24;
   final minutes = duration.inMinutes % 60;
+  final seconds = duration.inSeconds % 60;
+
+  final time =
+      '${hours.toString().padLeft(2, '0')}:'
+      '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}';
 
   if (days > 0) {
-    return 'Starts in $days days, $hours hours';
+    return '$days days, $time';
   }
 
-  if (duration.inHours > 0) {
-    return 'Starts in ${duration.inHours} hours, '
-        '$minutes min';
-  }
-
-  return 'Starts in ${duration.inMinutes} min';
+  return '${duration.inHours.toString().padLeft(2, '0')}:'
+      '${minutes.toString().padLeft(2, '0')}:'
+      '${seconds.toString().padLeft(2, '0')}';
 }
